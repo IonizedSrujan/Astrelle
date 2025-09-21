@@ -2,9 +2,6 @@
 
 Astrelle is a high-fidelity sky simulation software designed to generate realistic, synthetic astronomical images in the FITS format. It models the entire photon-to-pixel pipeline, from sourcing celestial objects from real-world catalogs to simulating atmospheric effects and detector noise. Its primary purpose is to create ground-truth datasets for the development and validation of algorithms that detect and mitigate satellite trails in astronomical data.
 
-![Astrelle GUI](docs/gui.png)  
-*(Replace `docs/gui.png` with an actual screenshot of your application.)*
-
 ---
 
 ## Key Features
