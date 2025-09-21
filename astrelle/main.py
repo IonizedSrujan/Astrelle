@@ -1,0 +1,158 @@
+# main.py
+# Main simulation orchestrator for Astrelle
+
+import os
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+import random
+
+import numpy as np
+import pandas as pd
+from astropy import units as u
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, AltAz, EarthLocation
+
+# Use relative imports for package structure
+from . import background
+from . import stars
+from . import galaxy
+from . import satellite
+
+# Use a hidden cache directory in the user's home folder.
+CACHE_DIR = Path.home() / ".cache" / "astrelle"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def run_simulation(tel_key, sen_key, dt_utc, exposure_s,
+                   pointing_mode, sat_mode, synth_sat_params,
+                   ra_deg=None, dec_deg=None, alt_deg=None, az_deg=None,
+                   mag_limit=20.0, seeing_fwhm_arcsec=1.5,
+                   sky_mag_per_arcsec2=21.0,
+                   bias_level_e=100, bias_spread_e=2.0,
+                   log_callback=None, progress_callback=None):
+    """Main simulation entry point."""
+    
+    def log(msg):
+        if log_callback:
+            log_callback(f"[{datetime.now():%H:%M:%S}] {msg}")
+
+    def update_progress(val):
+        if progress_callback:
+            progress_callback(val)
+
+    presets = background.load_presets()
+    tel = presets["telescopes"][tel_key]
+    sen = presets["sensors"][sen_key]
+    nx, ny = sen["resolution"]
+    
+    log("Calculating pointing direction..."); update_progress(15)
+    
+    if pointing_mode == "Local (Alt/Az)":
+        loc = EarthLocation(lat=tel["latitude"]*u.deg, lon=tel["longitude"]*u.deg, height=tel["elevation_m"]*u.m)
+        obstime = Time(dt_utc)
+        pointing_altaz = SkyCoord(alt=alt_deg*u.deg, az=az_deg*u.deg, frame=AltAz(obstime=obstime, location=loc))
+        pointing_icrs = pointing_altaz.transform_to('icrs')
+        center_ra, center_dec = float(pointing_icrs.ra.deg), float(pointing_icrs.dec.deg)
+        log(f"Pointing (Alt/Az): Alt={alt_deg:.2f}°, Az={az_deg:.2f}° -> RA={center_ra:.4f}°, Dec={center_dec:.4f}° at {dt_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    else: # Equatorial
+        center_ra, center_dec = ra_deg, dec_deg
+        log(f"Pointing (RA/Dec): RA={center_ra:.4f}°, Dec={center_dec:.4f}° at {dt_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+    focal_length_mm = tel['diameter_mm'] * tel['f_number']
+    pixel_scale = (sen["pixel_size_um"] / focal_length_mm) * 206.265
+    width_arcmin = (nx * pixel_scale) / 60.0
+    height_arcmin = (ny * pixel_scale) / 60.0
+    wcs = stars.create_wcs(center_ra, center_dec, nx, ny, pixel_scale)
+
+    log("Generating background and calculating zero point..."); update_progress(20)
+    zero_point = background.calculate_zero_point(tel, sen)
+    ideal_signal = background.generate_background_e(zero_point, sky_mag_per_arcsec2, pixel_scale, exposure_s, sen["dark_current_e_per_s"], (ny, nx))
+    
+    log("Querying Gaia for stars..."); update_progress(25)
+    stars_df, log_msg = stars.query_stars_gaia_rectangular(center_ra, center_dec, width_arcmin, height_arcmin, mag_limit)
+    log(log_msg)
+    stars_df = stars.add_star_fluxes(stars_df, zero_point, exposure_s)
+    stars_df = stars.project_stars_to_pixels(stars_df, wcs)
+    log("Rendering stars..."); update_progress(35)
+    ideal_signal = stars.render_stars(ideal_signal, stars_df, seeing_fwhm_arcsec / pixel_scale)
+    if not stars_df.empty:
+        stars_csv_path = CACHE_DIR / f"star_list_{dt_utc.strftime('%Y%m%dT%H%M%SZ')}.csv"
+        stars_df.to_csv(stars_csv_path, index=False)
+        log(f"Cached star list to {stars_csv_path.name}")
+
+    log("Querying 2MASS for galaxies..."); update_progress(40)
+    galaxies_df, log_msg = galaxy.query_galaxies_irsa_xsc(center_ra, center_dec, width_arcmin, height_arcmin)
+    log(log_msg)
+    if not galaxies_df.empty:
+        galaxies_df = stars.project_stars_to_pixels(galaxies_df, wcs)
+        log("Rendering galaxies..."); update_progress(45)
+        ideal_signal = galaxy.add_galaxies_to_image(ideal_signal, galaxies_df, pixel_scale, zero_point, exposure_s, seeing_fwhm_arcsec)
+        galaxies_csv_path = CACHE_DIR / f"galaxy_list_{dt_utc.strftime('%Y%m%dT%H%M%SZ')}.csv"
+        galaxies_df.to_csv(galaxies_csv_path, index=False)
+        log(f"Cached galaxy list to {galaxies_csv_path.name}")
+    else:
+        galaxies_df = pd.DataFrame()
+
+    satellites_df_tle = pd.DataFrame()
+    sats_out_df = pd.DataFrame()
+
+    if sat_mode == "Catalog":
+        log("Processing satellites from catalog..."); update_progress(50)
+        # Pass the correct cache directory
+        tle_txt = satellite.download_tles(cache_dir=CACHE_DIR)
+        if tle_txt:
+            tle_filename = CACHE_DIR / f"tles_{dt_utc.strftime('%Y%m%dT%H%M%SZ')}.txt"
+            tle_filename.write_text(tle_txt)
+        
+        satellites_df_tle, log_msg = satellite.get_sats_in_fov(
+            presets, tel_key, dt_utc, exposure_s, (width_arcmin, height_arcmin), (center_ra, center_dec),
+            progress_callback=progress_callback, log_callback=log_callback, cache_dir=CACHE_DIR
+        )
+        log(log_msg)
+        
+        if not satellites_df_tle.empty:
+            log("Rendering satellite trails from catalog..."); update_progress(85)
+            ideal_signal, sat_trail_details = satellite.render_satellite_trails(
+                ideal_signal, satellites_df_tle, wcs, zero_point, exposure_s, 
+                tel_key, sen_key, presets, dt_utc, 
+                seeing_fwhm_arcsec, pixel_scale
+            )
+            sats_out_df = pd.DataFrame(sat_trail_details)
+            sats_out_path = CACHE_DIR / f"satellite_list_{dt_utc.strftime('%Y%m%dT%H%M%SZ')}.csv"
+            sats_out_df.to_csv(sats_out_path, index=False)
+            log(f"Cached satellite list to {sats_out_path.name}")
+
+    elif sat_mode == "Synthetic":
+        if synth_sat_params and synth_sat_params[0].get('gen_mode') == 'Random':
+            log("Generating random parameters for synthetic trails...")
+            fov_w_deg = width_arcmin / 60.0
+            fov_h_deg = height_arcmin / 60.0
+            for p in synth_sat_params:
+                p['start_ra_deg'] = center_ra + random.uniform(-fov_w_deg / 2, fov_w_deg / 2)
+                p['start_dec_deg'] = center_dec + random.uniform(-fov_h_deg / 2, fov_h_deg / 2)
+                p['angle_deg'] = random.uniform(0, 360)
+
+        log(f"Generating {len(synth_sat_params)} synthetic satellite trails..."); update_progress(50)
+        ideal_signal, sat_trail_details = satellite.generate_synthetic_trails(
+            image=ideal_signal, wcs=wcs, trail_params_list=synth_sat_params,
+            pixel_scale=pixel_scale, zero_point=zero_point, exposure_s=exposure_s,
+            fps=sen.get("fps", 10.0)
+        )
+        sats_out_df = pd.DataFrame(sat_trail_details)
+        if not sats_out_df.empty:
+            sats_out_path = CACHE_DIR / f"satellite_list_{dt_utc.strftime('%Y%m%dT%H%M%SZ')}.csv"
+            sats_out_df.to_csv(sats_out_path, index=False)
+            log(f"Cached synthetic satellite list to {sats_out_path.name}")
+        update_progress(85)
+
+    log("Applying noise model..."); update_progress(95)
+    final_image = background.generate_noise(ideal_signal, bias_level_e, bias_spread_e, sen['read_noise_e'], sen['saturation_level_e'])
+
+    return {
+        "image": final_image, "stars_df": stars_df, "galaxies_df": galaxies_df, 
+        "satellites_df": sats_out_df,
+        "center_ra": center_ra, "center_dec": center_dec,
+        "pixel_scale": pixel_scale, "fov_arcmin": (width_arcmin, height_arcmin)
+    }
+
+
