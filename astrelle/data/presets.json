@@ -1,0 +1,68 @@
+{
+  "telescopes": {
+    "dfot": {
+      "name": "Devasthal Fast Optical Telescope",
+      "diameter_mm": 1310.64,
+      "inner_diameter_mm": 657.86,
+      "f_number": 4.0,
+      "latitude": 29.3609,
+      "longitude": 79.6843,
+      "elevation_m": 2540,
+      "throughput": 0.614125
+    }
+  },
+  "sensors": {
+    "Andor_DZ436": {
+      "name": "Andor DZ436 CCD",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "pixel_size_um": 13.5,
+      "read_noise_e": 3.0,
+      "dark_current_e_per_s": 0.001,
+      "qe": 0.95,
+      "saturation_level_e": 100000,
+      "fps": 0.2
+    },
+    "Andor_iXon897": {
+      "name": "Andor iXon 897 EMCCD",
+      "resolution": [
+        512,
+        512
+      ],
+      "pixel_size_um": 16.0,
+      "read_noise_e": 0.2,
+      "dark_current_e_per_s": 0.001,
+      "qe": 0.94,
+      "saturation_level_e": 80000,
+      "fps": 56.0
+    },
+    "QHY600M": {
+      "name": "QHY600M CMOS",
+      "resolution": [
+        9576,
+        6388
+      ],
+      "pixel_size_um": 3.76,
+      "read_noise_e": 1.0,
+      "dark_current_e_per_s": 0.002,
+      "qe": 0.88,
+      "saturation_level_e": 50000,
+      "fps": 10.0
+    },
+    "andor_marana_6p5um": {
+      "name": "Andor Marana 2048x2048 6.5 \u00b5m",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "pixel_size_um": 6.5,
+      "read_noise_e": 1.5,
+      "dark_current_e_per_s": 0.0005,
+      "qe": 0.85,
+      "saturation_level_e": 32000,
+      "fps": 74.0
+    }
+  }
+}
