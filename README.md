@@ -50,29 +50,6 @@ Launch in two ways:
   astrelle-gui
   ```
 
-### Example: Synthetic Trail Simulation
-
-**Scenario**: Generate a 300-second exposure of the Coma Galaxy Cluster with a bright artificial satellite trail.
-
-- **Instrument**: DFOT preset  
-- **Pointing**:  
-  - RA: `12h 59m 49s`  
-  - Dec: `+27d 58m 50s`  
-- **Observation**:  
-  - Exposure Time: `300 s`  
-  - Seeing: `1.2 arcsec`  
-  - Sky Brightness: `22.0 mag/arcsec²`  
-- **Satellites**:  
-  - Mode: `Synthetic`  
-  - Trail Parameters:  
-    - Magnitude: `7.0`  
-    - Start Pixel (X,Y): `0, 1024`  
-    - End Pixel (X,Y): `2048, 1024`
-
-Run the simulation and monitor the log window for progress.
-
----
-
 ## License
 This project is licensed under the [BSD 3-Clause License](LICENSE).
 
