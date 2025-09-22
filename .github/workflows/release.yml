@@ -1,0 +1,150 @@
+name: Build and Release Astrelle
+
+on:
+  push:
+    tags:
+      - 'v*' # Runs when you push a tag like v2.0.0
+
+jobs:
+  # First, build the Python wheel. All other jobs will use this.
+  build-python-package:
+    name: Build Python sdist and wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install build tools
+        run: pip install build
+      - name: Build wheel and sdist
+        run: python -m build
+      - name: Upload wheel as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+
+  # Job 2: Build for Windows
+  build-windows:
+    name: Build Windows .exe
+    needs: build-python-package # Wait for the wheel to be built
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
+      - name: Install dependencies and app
+        run: |
+          pip install pyinstaller
+          pip install dist/*.whl
+      - name: Create entry-point script
+        run: |
+          echo "from astrelle.gui import main_func" > run_astrelle.py
+          echo "if __name__ == '__main__':" >> run_astrelle.py
+          echo "    main_func()" >> run_astrelle.py
+      - name: Run PyInstaller
+        run: pyinstaller --onefile --windowed --name "Astrelle" --collect-all astrelle run_astrelle.py
+      - name: Upload .exe as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astrelle-windows
+          path: dist/Astrelle.exe
+
+  # Job 3: Build for Linux
+  build-linux:
+    name: Build Linux AppImage
+    needs: build-python-package
+    runs-on: ubuntu-22.04 # Use older LTS for compatibility
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip libfuse2 python3.11-venv
+          python3.11 -m venv venv
+          source venv/bin/activate
+          pip install dist/*.whl
+      - name: Download linuxdeploy
+        run: |
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy
+          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-python/releases/download/continuous/linuxdeploy-plugin-python-x86_64.AppImage" -O linuxdeploy-plugin-python
+          chmod +x linuxdeploy linuxdeploy-plugin-python
+      - name: Run linuxdeploy
+        env:
+          VENV_PATH: ${{ github.workspace }}/venv # Pass venv path to plugin
+        run: |
+          ./linuxdeploy --appdir AppDir --plugin python --output appimage
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astrelle-linux
+          path: Astrelle-x86_64.AppImage
+
+  # Job 4: Build for macOS
+  build-macos:
+    name: Build macOS .app
+    needs: build-python-package
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package
+          path: dist
+      - name: Install dependencies and app
+        run: |
+          pip install pyinstaller
+          pip install dist/*.whl
+      - name: Create entry-point script
+        run: |
+          echo "from astrelle.gui import main_func" > run_astrelle.py
+          echo "if __name__ == '__main__':" >> run_astrelle.py
+          echo "    main_func()" >> run_astrelle.py
+      - name: Run PyInstaller
+        run: pyinstaller --windowed --name "Astrelle" --collect-all astrelle run_astrelle.py
+      - name: Zip the .app bundle
+        run: zip -r Astrelle-macOS.zip dist/Astrelle.app
+      - name: Upload .app.zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astrelle-macos
+          path: Astrelle-macOS.zip
+
+  # Job 5: Combine all builds into one release
+  create-release:
+    name: Create GitHub Release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/astrelle-windows/Astrelle.exe
+            release-artifacts/astrelle-linux/Astrelle-x86_64.AppImage
+            release-artifacts/astrelle-macos/Astrelle-macOS.zip
