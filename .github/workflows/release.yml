@@ -60,38 +60,70 @@ jobs:
           name: astrelle-windows
           path: dist/astrelle_${{ github.ref_name }}.exe
 
-  # Job 3: Build for Linux (NEW AppImage/Conda method)
+  # Job 3: Build for Linux (PyInstaller + appimagetool method)
   build-linux:
-    name: Build Linux AppImage
+    name: Build Linux AppImage (PyInstaller + appimagetool)
     needs: build-python-package
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Download wheel
         uses: actions/download-artifact@v4
         with:
           name: python-wheel
           path: dist
-      - name: Install deps and venv
+
+      - name: Prepare system and venv
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip libfuse2 python3.11-venv wget zip
+          sudo apt-get install -y python3.11-venv libfuse2 wget zip imagemagick
           python3.11 -m venv venv
           source venv/bin/activate
-          pip install dist/*.whl
-      - name: Download linuxdeploy and plugins
+          pip install --upgrade pip
+          pip install dist/*.whl pyinstaller
+      - name: Create entry-point script
         run: |
-          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy
-          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage" -O linuxdeploy-plugin-appimage
-          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-conda/releases/download/continuous/linuxdeploy-plugin-conda-x86_64.AppImage" -O linuxdeploy-plugin-conda
-          chmod +x linuxdeploy linuxdeploy-plugin-appimage linuxdeploy-plugin-conda
-      - name: Run linuxdeploy (using conda plugin to bundle Python)
-        env:
-          VENV_PATH: ${{ github.workspace }}/venv
+          echo "from astrelle.gui import main_func" > run_astrelle.py
+          echo "if __name__ == '__main__':" >> run_astrelle.py
+          echo "    main_func()" >> run_astrelle.py
+      - name: Run PyInstaller (one-folder)
         run: |
-          ./linuxdeploy --appdir AppDir --plugin conda --output appimage
-          mv astrelle-x86_64.AppImage astrelle_${{ github.ref_name }}.AppImage
-      - name: Upload AppImage as artifact
+          source venv/bin/activate
+          pyinstaller --noconfirm --onedir --windowed --name astrelle_${{ github.ref_name }} run_astrelle.py
+      - name: Build AppDir
+        run: |
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          # copy PyInstaller bundle into AppDir/usr/bin
+          cp -r dist/astrelle_${{ github.ref_name }}/* AppDir/usr/bin/
+          # create a small launcher script that execs the binary from AppDir/usr/bin
+          cat > AppDir/AppRun <<'EOF'
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "$0")")"
+          exec "$HERE"/usr/bin/astrelle_${GITHUB_REF_NAME:-"${{ github.ref_name }}"} "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          # desktop file
+          cat > AppDir/astrelle.desktop <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Name=Astrelle
+          Exec=astrelle_${{ github.ref_name }}
+          Icon=astrelle
+          Terminal=false
+          Categories=Utility;Science;
+          EOF
+          # placeholder icon (optional).
+          convert -size 256x256 xc:none -background white -gravity center -pointsize 24 -fill black -annotate 0 "Astrelle" AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png || true
+      - name: Download appimagetool
+        run: |
+          wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+      - name: Create AppImage
+        run: |
+          ./appimagetool AppDir astrelle_${{ github.ref_name }}.AppImage
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
           name: astrelle-linux
