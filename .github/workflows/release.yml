@@ -75,7 +75,9 @@ jobs:
       - name: Prepare system and venv
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3.11-venv libfuse2 wget zip imagemagick libpython3.11
+          sudo apt-get install -y python3.11-venv libfuse2 wget zip imagemagick libpython3.11 appstream
+      - name: Install Python dependencies
+        run: |
           python3.11 -m venv venv
           source venv/bin/activate
           pip install --upgrade pip
@@ -110,6 +112,8 @@ jobs:
           Categories=Utility;Science;
           EOF
           convert -size 256x256 xc:none -background white -gravity center -pointsize 24 -fill black -annotate 0 "Astrelle" AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png || true
+          # **THE FIX IS HERE**: Copy the icon to the root of AppDir
+          cp AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png AppDir/astrelle.png
       - name: Download appimagetool
         run: |
           wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
