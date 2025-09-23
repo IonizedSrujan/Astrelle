@@ -45,7 +45,7 @@ jobs:
       - name: Install dependencies and app
         run: |
           pip install pyinstaller
-          pip install dist/*.whl
+          pip install dist/
       - name: Create entry-point script
         run: |
           echo "from astrelle.gui import main_func" > run_astrelle.py
@@ -77,11 +77,11 @@ jobs:
           sudo apt-get install -y python3-pip libfuse2 python3.11-venv
           python3.11 -m venv venv
           source venv/bin/activate
-          pip install dist/*.whl
+          pip install dist/
       - name: Download linuxdeploy
         run: |
           wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy
-          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-python/releases/download/continuous/linuxdeploy-plugin-python-x86_64.AppImage" -O linuxdeploy-plugin-python
+          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-python/releases/latest/download/linuxdeploy-plugin-python-x86_64.AppImage" -O linuxdeploy-plugin-python
           chmod +x linuxdeploy linuxdeploy-plugin-python
       - name: Run linuxdeploy
         env:
@@ -114,7 +114,7 @@ jobs:
       - name: Install dependencies and app
         run: |
           pip install pyinstaller
-          pip install dist/*.whl
+          pip install dist/
       - name: Create entry-point script
         run: |
           echo "from astrelle.gui import main_func" > run_astrelle.py
@@ -146,6 +146,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-             release-artifacts/astrelle-windows/astrelle_${{ github.ref_name }}.exe
-             release-artifacts/astrelle-linux/astrelle_${{ github.ref_name }}.AppImage
-             release-artifacts/astrelle-macos/astrelle_${{ github.ref_name }}_macOS.zip
+            release-artifacts/astrelle-windows/astrelle_${{ github.ref_name }}.exe
+            release-artifacts/astrelle-linux/astrelle_${{ github.ref_name }}.AppImage
+            release-artifacts/astrelle-macos/astrelle_${{ github.ref_name }}_macOS.zip
