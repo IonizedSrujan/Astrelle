@@ -53,7 +53,16 @@ jobs:
           echo "if __name__ == '__main__':" >> run_astrelle.py
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
-        run: pyinstaller --onefile --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run_astrelle.py
+        run: |
+          pyinstaller --onefile --windowed --name "astrelle_${{ github.ref_name }}" ^
+          --collect-all astrelle ^
+          --collect-all astroquery ^
+          --collect-all astropy ^
+          --collect-all pyvo ^
+          --collect-all skyfield ^
+          --collect-all matplotlib ^
+          --collect-all requests ^
+          run_astrelle.py
       - name: Upload .exe as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -90,7 +99,15 @@ jobs:
       - name: Run PyInstaller (one-folder)
         run: |
           source venv/bin/activate
-          pyinstaller --noconfirm --onedir --windowed --name astrelle_${{ github.ref_name }} run_astrelle.py
+          pyinstaller --noconfirm --onedir --windowed --name astrelle_${{ github.ref_name }} \
+          --collect-all astrelle \
+          --collect-all astroquery \
+          --collect-all astropy \
+          --collect-all pyvo \
+          --collect-all skyfield \
+          --collect-all matplotlib \
+          --collect-all requests \
+          run_astrelle.py
       - name: Build AppDir
         run: |
           mkdir -p AppDir/usr/bin
@@ -112,7 +129,6 @@ jobs:
           Categories=Utility;Science;
           EOF
           convert -size 256x256 xc:none -background white -gravity center -pointsize 24 -fill black -annotate 0 "Astrelle" AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png || true
-          # **THE FIX IS HERE**: Copy the icon to the root of AppDir
           cp AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png AppDir/astrelle.png
       - name: Download appimagetool
         run: |
@@ -153,7 +169,16 @@ jobs:
           echo "if __name__ == '__main__':" >> run_astrelle.py
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
-        run: pyinstaller --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run_astrelle.py
+        run: |
+          pyinstaller --windowed --name "astrelle_${{ github.ref_name }}" \
+          --collect-all astrelle \
+          --collect-all astroquery \
+          --collect-all astropy \
+          --collect-all pyvo \
+          --collect-all skyfield \
+          --collect-all matplotlib \
+          --collect-all requests \
+          run_astrelle.py
       - name: Zip the .app bundle
         run: zip -r astrelle_${{ github.ref_name }}_macOS.zip dist/astrelle_${{ github.ref_name }}.app
       - name: Upload .app.zip as artifact
