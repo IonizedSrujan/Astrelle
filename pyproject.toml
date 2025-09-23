@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "astrelle"
-version = "2.0.0"  # Set your new release version
+version = "1.0.1"  # Set your new release version
 description = "Astrelle Sky Simulator"
 readme = "README.md"  # Make sure you have a README.md file
 license = { text = "Your License (e.g., MIT, GPL-3.0-or-later)" }
