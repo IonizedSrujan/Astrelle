@@ -67,17 +67,14 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-
       - name: Download wheel
         uses: actions/download-artifact@v4
         with:
           name: python-wheel
           path: dist
-
       - name: Prepare system and venv
         run: |
           sudo apt-get update
-          # Add libpython3.11 here
           sudo apt-get install -y python3.11-venv libfuse2 wget zip imagemagick libpython3.11
           python3.11 -m venv venv
           source venv/bin/activate
@@ -115,7 +112,7 @@ jobs:
           convert -size 256x256 xc:none -background white -gravity center -pointsize 24 -fill black -annotate 0 "Astrelle" AppDir/usr/share/icons/hicolor/256x256/apps/astrelle.png || true
       - name: Download appimagetool
         run: |
-          wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86__64.AppImage" -O appimagetool
+          wget -c "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
           chmod +x appimagetool
       - name: Create AppImage
         run: |
@@ -152,7 +149,7 @@ jobs:
           echo "if __name__ == '__main__':" >> run_astrelle.py
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
-        run: pyinstaller --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run__astrelle.py
+        run: pyinstaller --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run_astrelle.py
       - name: Zip the .app bundle
         run: zip -r astrelle_${{ github.ref_name }}_macOS.zip dist/astrelle_${{ github.ref_name }}.app
       - name: Upload .app.zip as artifact
