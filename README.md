@@ -1,64 +1,59 @@
 # Astrelle Sky Simulator
 
-Astrelle is a high-fidelity sky simulation software designed to generate realistic, synthetic astronomical images in the FITS format. It models the entire photon-to-pixel pipeline, from sourcing celestial objects from real-world catalogs to simulating atmospheric effects and detector noise. Its primary purpose is to create ground-truth datasets for the development and validation of algorithms that detect and mitigate satellite trails in astronomical data.
+Astrelle is a high-fidelity astronomical image simulator designed to generate realistic synthetic sky images in FITS format. It models the photon-to-pixel pipeline: sourcing celestial objects from catalogs, applying atmospheric effects, and simulating detector noise. Its core purpose is to provide ground-truth datasets for developing and validating algorithms, especially for detecting and mitigating satellite trails in astronomical observations.
 
 ---
 
 ## Key Features
-- **Realistic Sky Simulation**: Generates star fields and galaxies sourced from major astronomical catalogs (Gaia DR3, 2MASS XSC).
-- **Physical Modeling**: Accurately models atmospheric seeing (PSF), sky background, and detector noise (shot, read, dark current).
-- **Satellite Trail Generation**: Simulates both real satellite passes by fetching live TLE data, and allows creation of configurable synthetic trails.
-- **Configurable Instruments**: JSON-based preset system defines telescope and sensor combinations.
-- **Graphical User Interface**: Intuitive GUI built with PyQt6 provides full control over simulation parameters.
-- **Standard Data Formats**: Outputs FITS files with valid WCS headers, along with optional PNG images and CSV ground-truth lists.
+- **Catalog-Based Sky Simulation**: Generates star fields and galaxies using Gaia DR3 and 2MASS XSC catalogs.  
+- **Physical Accuracy**: Models PSF (seeing), sky background, and detector noise (shot, read, dark current).  
+- **Satellite Trail Simulation**: Supports live TLE-based real passes and configurable synthetic trails.  
+- **Configurable Instruments**: JSON-based presets for telescope and sensor configurations.  
+- **Cross-Platform GUI**: PyQt6-based interface available on Linux, Windows, and macOS.  
+- **Standard Outputs**: Produces FITS with valid WCS headers, PNG images, and CSV ground-truth tables.  
 
 ---
 
-## Installation
+## Installation & Usage
 
-Astrelle is designed for Debian-based Linux systems (e.g., Ubuntu).
+No external dependencies are required. Download the package for your operating system from the [Releases](https://github.com/YOURUSER/astrelle/releases) page and run directly.
 
-### 1. System Dependencies
-```bash
-sudo apt-get update
-sudo apt-get install python3-numpy python3-pandas python3-scipy python3-astropy python3-astroquery python3-pyvo python3-matplotlib python3-requests
-```
+### Linux
+1. Download `astrelle_v1.0.1.AppImage`.  
+2. Make it executable:  
+   ```bash
+   chmod +x astrelle_v1.0.1.AppImage
+   ```
+3. Run:  
+   ```bash
+   ./astrelle_v1.0.1.AppImage
+   ```
 
-### 2. Python-Specific Dependencies
-```bash
-pip3 install PyQt6 skyfield
-```
+### Windows
+1. Download `astrelle_v1.0.1.exe`.  
+2. Double-click to launch the installer and follow on-screen instructions.  
+3. Open *Astrelle Sky Simulator* from the Start Menu after installation.  
 
-### 3. Application Installation
-Download the latest `.deb` package from the [Releases](https://github.com/YOURUSER/astrelle/releases) page and install:
-
-```bash
-sudo dpkg -i astrelle_*.deb
-# Fix missing dependencies if needed
-sudo apt-get install -f
-```
+### macOS
+1. Download `astrelle_v1.0.1_macOS.zip`.  
+2. Extract the archive.  
+3. Open `Astrelle.app` and, if prompted, allow it through *System Preferences > Security & Privacy*.  
 
 ---
 
-## Usage
+## Version Information
+- **v1.0.1** (Latest): Multi-platform builds (Windows, macOS, Linux), stability fixes.  
+- **v1.0.0**: Initial public release.  
 
-Launch in two ways:
-
-- **From Application Menu**: Search for *Astrelle Sky Simulator*.  
-- **From Terminal**:
-  ```bash
-  astrelle-gui
-  ```
+---
 
 ## License
-This project is licensed under the [BSD 3-Clause License](LICENSE).
+BSD 3-Clause License. See [LICENSE](LICENSE) file.
 
 ---
 
 ## Acknowledgments
-Astrelle is built upon a foundation of open-source astronomical software, including:
-
+Astrelle builds upon open-source astronomical software:
 - [Astropy](https://www.astropy.org/)  
 - [Skyfield](https://rhodesmill.org/skyfield/)  
-- [NumPy](https://numpy.org/) & [SciPy](https://scipy.org/)  
-- and many others.
+- [NumPy](https://numpy.org/) and [SciPy](https://scipy.org/)  
