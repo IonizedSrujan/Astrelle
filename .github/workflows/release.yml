@@ -54,14 +54,14 @@ jobs:
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
         run: |
-          pyinstaller --onefile --windowed --name "astrelle_${{ github.ref_name }}" ^
-          --collect-all astrelle ^
-          --collect-all astroquery ^
-          --collect-all astropy ^
-          --collect-all pyvo ^
-          --collect-all skyfield ^
-          --collect-all matplotlib ^
-          --collect-all requests ^
+          pyinstaller --onefile --windowed --name "astrelle_${{ github.ref_name }}" `
+          --collect-all astrelle `
+          --collect-all astroquery `
+          --collect-all astropy `
+          --collect-all pyvo `
+          --collect-all skyfield `
+          --collect-all matplotlib `
+          --collect-all requests `
           run_astrelle.py
       - name: Upload .exe as artifact
         uses: actions/upload-artifact@v4
