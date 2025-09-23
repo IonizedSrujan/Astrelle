@@ -52,12 +52,12 @@ jobs:
           echo "if __name__ == '__main__':" >> run_astrelle.py
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
-        run: pyinstaller --onefile --windowed --name "Astrelle" --collect-all astrelle run_astrelle.py
+        run: pyinstaller --onefile --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run_astrelle.py
       - name: Upload .exe as artifact
         uses: actions/upload-artifact@v4
         with:
           name: astrelle-windows
-          path: dist/Astrelle.exe
+          path: dist/astrelle_${{ github.ref_name }}.exe
 
   # Job 3: Build for Linux
   build-linux:
@@ -88,11 +88,12 @@ jobs:
           VENV_PATH: ${{ github.workspace }}/venv # Pass venv path to plugin
         run: |
           ./linuxdeploy --appdir AppDir --plugin python --output appimage
+          mv astrelle-x86_64.AppImage astrelle_${{ github.ref_name }}.AppImage
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v4
         with:
           name: astrelle-linux
-          path: Astrelle-x86_64.AppImage
+          path: astrelle_${{ github.ref_name }}.AppImage
 
   # Job 4: Build for macOS
   build-macos:
@@ -120,14 +121,14 @@ jobs:
           echo "if __name__ == '__main__':" >> run_astrelle.py
           echo "    main_func()" >> run_astrelle.py
       - name: Run PyInstaller
-        run: pyinstaller --windowed --name "Astrelle" --collect-all astrelle run_astrelle.py
+        run: pyinstaller --windowed --name "astrelle_${{ github.ref_name }}" --collect-all astrelle run_astrelle.py
       - name: Zip the .app bundle
-        run: zip -r Astrelle-macOS.zip dist/Astrelle.app
+        run: zip -r astrelle_${{ github.ref_name }}_macOS.zip dist/astrelle_${{ github.ref_name }}.app
       - name: Upload .app.zip as artifact
         uses: actions/upload-artifact@v4
         with:
           name: astrelle-macos
-          path: Astrelle-macOS.zip
+          path: astrelle_${{ github.ref_name }}_macOS.zip
 
   # Job 5: Combine all builds into one release
   create-release:
@@ -145,6 +146,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/astrelle-windows/Astrelle.exe
-            release-artifacts/astrelle-linux/Astrelle-x86_64.AppImage
-            release-artifacts/astrelle-macos/Astrelle-macOS.zip
+             release-artifacts/astrelle-windows/astrelle_${{ github.ref_name }}.exe
+             release-artifacts/astrelle-linux/astrelle_${{ github.ref_name }}.AppImage
+             release-artifacts/astrelle-macos/astrelle_${{ github.ref_name }}_macOS.zip
