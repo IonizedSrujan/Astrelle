@@ -6,7 +6,7 @@ on:
       - 'v*' # Runs when you push a tag like v2.0.0
 
 jobs:
-  # First, build the Python wheel. All other jobs will use this.
+  # Job 1: Build the Python wheel
   build-python-package:
     name: Build Python sdist and wheel
     runs-on: ubuntu-latest
@@ -20,10 +20,14 @@ jobs:
         run: pip install build
       - name: Build wheel and sdist
         run: python -m build
-      - name: Upload wheel as artifact
+      - name: Rename outputs for consistency
+        run: |
+          find dist -name "*.whl" -exec mv {} dist/astrelle_wheel.whl \;
+          find dist -name "*.tar.gz" -exec mv {} dist/astrelle_sdist.tar.gz \;
+      - name: Upload dist directory as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-package
+          name: python-package-dist
           path: dist/
 
   # Job 2: Build for Windows
@@ -37,15 +41,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Download wheel
+      - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
+          name: python-package-dist
           path: dist
       - name: Install dependencies and app
         run: |
           pip install pyinstaller
-          pip install dist/
+          pip install dist/astrelle_wheel.whl
       - name: Create entry-point script
         run: |
           echo "from astrelle.gui import main_func" > run_astrelle.py
@@ -66,10 +70,10 @@ jobs:
     runs-on: ubuntu-22.04 # Use older LTS for compatibility
     steps:
       - uses: actions/checkout@v4
-      - name: Download wheel
+      - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
+          name: python-package-dist
           path: dist
       - name: Install dependencies
         run: |
@@ -77,7 +81,7 @@ jobs:
           sudo apt-get install -y python3-pip libfuse2 python3.11-venv
           python3.11 -m venv venv
           source venv/bin/activate
-          pip install dist/
+          pip install dist/astrelle_wheel.whl
       - name: Download linuxdeploy
         run: |
           wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy
@@ -106,15 +110,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Download wheel
+      - name: Download dist artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
+          name: python-package-dist
           path: dist
       - name: Install dependencies and app
         run: |
           pip install pyinstaller
-          pip install dist/
+          pip install dist/astrelle_wheel.whl
       - name: Create entry-point script
         run: |
           echo "from astrelle.gui import main_func" > run_astrelle.py
