@@ -16,7 +16,7 @@ Astrelle is a high-fidelity astronomical image simulator designed to generate re
 
 ## Installation & Usage
 
-No external dependencies are required. Download the package for your operating system from the [Releases](https://github.com/YOURUSER/astrelle/releases) page and run directly.
+No external dependencies are required. Download the package for your operating system from the [Releases](https://github.com/IonizedSrujan/Astrelle/releases) page and run directly.
 
 ### Linux
 1. Download `astrelle_v1.0.1.AppImage`.  
