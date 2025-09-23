@@ -23,13 +23,13 @@ jobs:
       - name: Upload wheel as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-wheel  # <-- Upload ONLY the wheel
+          name: python-wheel
           path: dist/*.whl
 
   # Job 2: Build for Windows
   build-windows:
     name: Build Windows .exe
-    needs: build-python-package # Wait for the wheel to be built
+    needs: build-python-package
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,12 +40,11 @@ jobs:
       - name: Download wheel
         uses: actions/download-artifact@v4
         with:
-          name: python-wheel # <-- Download the wheel
-          path: dist         # <-- Put it in the 'dist' folder
+          name: python-wheel
+          path: dist
       - name: Install dependencies and app
         run: |
           pip install pyinstaller
-          # This PowerShell command finds the wheel file in 'dist' and installs it
           $wheel = Get-ChildItem -Path dist -Filter *.whl | Select-Object -First 1
           pip install $wheel.FullName
       - name: Create entry-point script
@@ -61,11 +60,11 @@ jobs:
           name: astrelle-windows
           path: dist/astrelle_${{ github.ref_name }}.exe
 
-  # Job 3: Build for Linux
+  # Job 3: Build for Linux (NEW AppImage/Conda method)
   build-linux:
     name: Build Linux AppImage
     needs: build-python-package
-    runs-on: ubuntu-22.04 # Use older LTS for compatibility
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Download wheel
@@ -73,23 +72,24 @@ jobs:
         with:
           name: python-wheel
           path: dist
-      - name: Install dependencies
+      - name: Install deps and venv
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip libfuse2 python3.11-venv
+          sudo apt-get install -y python3-pip libfuse2 python3.11-venv wget zip
           python3.11 -m venv venv
           source venv/bin/activate
           pip install dist/*.whl
-      - name: Download linuxdeploy
+      - name: Download linuxdeploy and plugins
         run: |
           wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy
-          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-python/releases/latest/download/linuxdeploy-plugin-python-x86_64.AppImage" -O linuxdeploy-plugin-python
-          chmod +x linuxdeploy linuxdeploy-plugin-python
-      - name: Run linuxdeploy
+          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage" -O linuxdeploy-plugin-appimage
+          wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-conda/releases/download/continuous/linuxdeploy-plugin-conda-x86_64.AppImage" -O linuxdeploy-plugin-conda
+          chmod +x linuxdeploy linuxdeploy-plugin-appimage linuxdeploy-plugin-conda
+      - name: Run linuxdeploy (using conda plugin to bundle Python)
         env:
-          VENV_PATH: ${{ github.workspace }}/venv # Pass venv path to plugin
+          VENV_PATH: ${{ github.workspace }}/venv
         run: |
-          ./linuxdeploy --appdir AppDir --plugin python --output appimage
+          ./linuxdeploy --appdir AppDir --plugin conda --output appimage
           mv astrelle-x86_64.AppImage astrelle_${{ github.ref_name }}.AppImage
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v4
