@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "astrelle"
+version = "2.0.0"  # Set your new release version
+description = "Astrelle Sky Simulator"
+readme = "README.md"  # Make sure you have a README.md file
+license = { text = "Your License (e.g., MIT, GPL-3.0-or-later)" }
+requires-python = ">=3.9"
+dependencies = [
+    "astropy",
+    "astroquery",
+    "matplotlib",
+    "numpy",
+    "pandas",
+    "PyQt6",
+    "pyvo",
+    "requests",
+    "scipy",
+    "skyfield"
+]
+
+[project.gui-scripts]
+astrelle-gui = "astrelle.gui:main_func"
