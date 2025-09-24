@@ -22,8 +22,7 @@
       "read_noise_e": 3.0,
       "dark_current_e_per_s": 0.001,
       "qe": 0.95,
-      "saturation_level_e": 100000,
-      "fps": 0.2
+      "saturation_level_e": 100000
     },
     "Andor_iXon897": {
       "name": "Andor iXon 897 EMCCD",
@@ -35,8 +34,7 @@
       "read_noise_e": 0.2,
       "dark_current_e_per_s": 0.001,
       "qe": 0.94,
-      "saturation_level_e": 80000,
-      "fps": 56.0
+      "saturation_level_e": 80000
     },
     "QHY600M": {
       "name": "QHY600M CMOS",
@@ -48,8 +46,7 @@
       "read_noise_e": 1.0,
       "dark_current_e_per_s": 0.002,
       "qe": 0.88,
-      "saturation_level_e": 50000,
-      "fps": 10.0
+      "saturation_level_e": 50000
     },
     "andor_marana_6p5um": {
       "name": "Andor Marana 2048x2048 6.5 \u00b5m",
@@ -61,8 +58,8 @@
       "read_noise_e": 1.5,
       "dark_current_e_per_s": 0.0005,
       "qe": 0.85,
-      "saturation_level_e": 32000,
-      "fps": 74.0
+      "saturation_level_e": 32000
     }
   }
 }
+
