@@ -19,6 +19,7 @@ dependencies = [
     "pyvo",
     "requests",
     "scipy",
+    "sgp4",
     "skyfield"
 ]
 
