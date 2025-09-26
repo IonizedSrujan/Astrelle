@@ -10,17 +10,6 @@
       "elevation_m": 2540,
       "throughput": 0.614125,
       "plate_scale_arcsec_per_mm": 40.0545
-    },
-    "schmidt": {
-      "name": "Schmidt 40 inch",
-      "diameter_mm": 600.00,
-      "inner_diameter_mm": 0.00,
-      "f_number": 2.2,
-      "latitude": 29.3833,
-      "longitude": 79.4333,
-      "elevation_m": 1951,
-      "throughput": 0.65,
-      "plate_scale_arcsec_per_mm": 156.00
     }
   },
   "sensors": {
@@ -71,18 +60,6 @@
       "dark_current_e_per_s": 0.0005,
       "qe": 0.85,
       "saturation_level_e": 32000
-    },
-    "schmidt-det": {
-      "name": "Schmidt detector",
-      "resolution": [
-        6144,
-        6144
-      ],
-      "pixel_size_um": 10.0,
-      "read_noise_e": 4.2,
-      "dark_current_e_per_s": 0.07,
-      "qe": 0.90,
-      "saturation_level_e": 100000
     }
   }
 }
