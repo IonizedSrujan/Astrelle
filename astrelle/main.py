@@ -54,8 +54,15 @@ def run_simulation(tel_key, sen_key, dt_utc, exposure_s,
         center_ra, center_dec = ra_deg, dec_deg
         log(f"Pointing (RA/Dec): RA={center_ra:.4f}°, Dec={center_dec:.4f}° at {dt_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
-    focal_length_mm = tel['diameter_mm'] * tel['f_number']
-    pixel_scale = (sen["pixel_size_um"] / focal_length_mm) * 206.265
+    # Check for a preset plate scale, otherwise calculate it.
+    if "plate_scale_arcsec_per_mm" in tel and tel["plate_scale_arcsec_per_mm"] > 0:
+        pixel_scale = tel["plate_scale_arcsec_per_mm"] * (sen["pixel_size_um"] / 1000.0)
+        log(f"Using telescope preset plate scale: {pixel_scale:.4f}\" / pixel")
+    else:
+        focal_length_mm = tel['diameter_mm'] * tel['f_number']
+        pixel_scale = (sen["pixel_size_um"] / focal_length_mm) * 206.265
+        log(f"Calculated plate scale: {pixel_scale:.4f}\" / pixel")
+
     width_arcmin = (nx * pixel_scale) / 60.0
     height_arcmin = (ny * pixel_scale) / 60.0
     wcs = stars.create_wcs(center_ra, center_dec, nx, ny, pixel_scale)
@@ -82,7 +89,6 @@ def run_simulation(tel_key, sen_key, dt_utc, exposure_s,
         ideal_signal = galaxy.add_galaxies_to_image(ideal_signal, galaxies_df, pixel_scale, zero_point, exposure_s, seeing_fwhm_arcsec)
     
     sats_out_df = pd.DataFrame()
-    all_tles_df = pd.DataFrame()
 
     if sat_mode == "Catalog":
         log("Processing satellites from catalog..."); update_progress(50)
@@ -114,7 +120,7 @@ def run_simulation(tel_key, sen_key, dt_utc, exposure_s,
                 p['angle_deg'] = random.uniform(0, 360)
 
         log(f"Generating {len(synth_sat_params)} synthetic satellite trails..."); update_progress(50)
-        for p in synth_sat_params: p['pixel_scale'] = pixel_scale # Add pixel scale to params
+        for p in synth_sat_params: p['pixel_scale'] = pixel_scale
         ideal_signal, sat_trail_details = satellite.generate_synthetic_trails(
             image=ideal_signal, trail_params_list=synth_sat_params,
             zero_point=zero_point, exposure_s=exposure_s

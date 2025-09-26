@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QComboBox, QTextEdit, QFileDialog,
     QProgressBar, QToolBar, QMenu, QDialog, QFormLayout,
     QLineEdit, QMessageBox, QDateEdit, QTimeEdit, QSplitter, QToolButton,
-    QCheckBox, QGroupBox, QSizePolicy, QSpinBox, QStackedWidget
+    QCheckBox, QGroupBox, QSizePolicy, QSpinBox, QStackedWidget, QScrollArea, QFrame
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QDateTime
 from PyQt6.QtGui import QPalette, QColor, QAction
@@ -110,6 +110,9 @@ QProgressBar::chunk {
 QLabel {
     background-color: transparent;
 }
+QScrollArea {
+    border: none;
+}
 """
 
 # Worker thread for running the main simulation.
@@ -153,6 +156,10 @@ class AddPresetDialog(QDialog):
                              ("F-Number", 'f_number'), ("Throughput (0-1)", 'throughput'),
                              ("Latitude (deg)", 'latitude'), ("Longitude (deg)", 'longitude'), ("Elevation (m)", 'elevation_m')]:
                 form.addRow(k, self.fields[v_str])
+            self.fields['plate_scale'] = QLineEdit("") # Optional
+            self.fields['plate_scale'].setPlaceholderText("Optional (e.g., 156.26)")
+            form.addRow("Plate Scale (\”/mm):", self.fields['plate_scale'])
+
         else: # sensor
             self.fields.update({k: QLineEdit(v) for k, v in {
                 'resolution': "2048x2048", 'pixel_size_um': "13.5", 'read_noise_e': "3.0",
@@ -174,6 +181,11 @@ class AddPresetDialog(QDialog):
             if self.mode == "telescope":
                 for k in ['diameter_mm', 'inner_diameter_mm', 'f_number', 'throughput', 'latitude', 'longitude', 'elevation_m']:
                     new[k] = float(self.fields[k].text())
+                
+                plate_scale_text = self.fields['plate_scale'].text().strip()
+                if plate_scale_text:
+                    new['plate_scale_arcsec_per_mm'] = float(plate_scale_text)
+
                 presets["telescopes"][key] = new
             else: # sensor
                 res = self.fields['resolution'].text().lower().split('x')
@@ -264,8 +276,15 @@ class SkySimGUI(QMainWindow):
         central = QWidget(); self.setCentralWidget(central)
         splitter = QSplitter(Qt.Orientation.Horizontal, self); QVBoxLayout(central).addWidget(splitter)
         
-        left_panel = QWidget(); self.controls = QVBoxLayout(left_panel)
-        left_panel.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        left_panel_content = QWidget()
+        self.controls = QVBoxLayout(left_panel_content)
+        scroll_area.setWidget(left_panel_content)
+        splitter.addWidget(scroll_area)
         
         inst_group = QGroupBox("Instrument"); inst_layout = QVBoxLayout(); inst_group.setLayout(inst_layout)
         inst_form = QFormLayout()
@@ -372,7 +391,6 @@ class SkySimGUI(QMainWindow):
         self.progress = QProgressBar()
         self.controls.addWidget(self.progress)
         self.controls.addStretch(1)
-        splitter.addWidget(left_panel)
 
         right_panel = QWidget(); rv = QVBoxLayout(right_panel)
         right_panel.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -526,6 +544,7 @@ class SkySimGUI(QMainWindow):
         if self.worker and self.worker.isRunning():
             self.stop_sim()
         else:
+            self.log.clear()
             self.run_sim()
 
     def run_sim(self):
@@ -577,13 +596,11 @@ class SkySimGUI(QMainWindow):
         arr = self.current_out["image"]
         wcs = self.current_out.get("wcs")
         
-        # Use a robust ZScale for automatic contrast stretching
         try:
             mean, median, std = sigma_clipped_stats(arr, sigma=3.0, maxiters=5)
             vmin = median - 2 * std
             vmax = median + 10 * std
         except Exception:
-            # Fallback for very empty or unusual images
             vmin, vmax = np.percentile(arr, 1), np.percentile(arr, 99.8)
         
         self.fig.clear()
@@ -608,10 +625,10 @@ class SkySimGUI(QMainWindow):
 
         if self.annotate_stars_cb.isChecked() and self.current_out.get('stars_df') is not None and not self.current_out['stars_df'].empty:
             df = self.current_out['stars_df'][self.current_out['stars_df']['phot_g_mean_mag'] < 14]
-            self.ax.scatter(df['x'], df['y'], s=40, facecolor='none', edgecolor='cyan', alpha=0.7)
+            self.ax.scatter(df['x'], df['y'], s=20, facecolor='none', edgecolor='cyan', alpha=0.7, lw=0.5)
         if self.annotate_gals_cb.isChecked() and self.current_out.get('galaxies_df') is not None and not self.current_out['galaxies_df'].empty:
             df = self.current_out['galaxies_df']
-            self.ax.scatter(df['x'], df['y'], s=50, marker='s', facecolor='none', edgecolor='lime', alpha=0.7)
+            self.ax.scatter(df['x'], df['y'], s=25, marker='s', facecolor='none', edgecolor='lime', alpha=0.7, lw=0.5)
         if self.annotate_sats_cb.isChecked() and self.current_out.get('satellites_df') is not None and not self.current_out['satellites_df'].empty:
             for _, s in self.current_out['satellites_df'].iterrows():
                 self.ax.text(s['x_center'], s['y_center'], s['satname'], color='yellow', fontsize=7, ha='center',
@@ -688,3 +705,5 @@ def main_func():
 
 if __name__ == "__main__":
     main_func()
+
+
